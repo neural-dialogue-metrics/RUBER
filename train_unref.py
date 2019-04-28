@@ -18,6 +18,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     model = Unreferenced(
+        train_dir=args.train_dir,
         query_max_len=args.query_max_len,
         reply_max_len=args.reply_max_len,
         query_w2v_file=args.query_embed_file,

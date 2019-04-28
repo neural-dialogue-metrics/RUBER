@@ -153,7 +153,9 @@ class Unreferenced(object):
                 # write summary
                 self.log_writer = tf.summary.FileWriter(os.path.join(train_dir, 'logs/'),
                                                         self.session.graph)
-                self.summary = tf.Summary()
+                tf.summary.scalar('learning_rate', self.learning_rate)
+                tf.summary.scalar('loss', self.loss)
+                self.summary = tf.summary.merge_all()
 
     def get_batch(self, data, data_size, batch_size, idx=None):
         """
@@ -204,10 +206,10 @@ class Unreferenced(object):
         feed_dict = self.make_input_feed(query_batch, query_sizes,
                                          reply_batch, reply_sizes,
                                          negative_reply_batch, neg_reply_sizes)
-        output_feed = [self.global_step, self.train_op, self.loss]
-        step, _, loss = self.session.run(output_feed, feed_dict)
+        output_feed = [self.global_step, self.train_op, self.loss, self.summary]
+        step, _, loss, summary = self.session.run(output_feed, feed_dict)
 
-        return step, loss
+        return step, loss, summary
 
     def init_model(self):
         """
@@ -233,20 +235,24 @@ class Unreferenced(object):
             loss = 0.0
             prev_losses = [1.0]
             while True:
-                step, l = self.train_step(queries, replies, data_size, batch_size)
+                step, l, summary = self.train_step(queries, replies, data_size, batch_size)
                 loss += l
+                self.log_writer.add_summary(summary, step)
+
                 # save checkpoint
                 if step % steps_per_checkpoint == 0:
                     loss /= steps_per_checkpoint
-                    print(("global_step %d, loss %f, learning rate %f" % (step, loss, self.learning_rate.eval())))
+                    print('global_step %d' % step)
+                    print('loss %f' % loss)
+                    print('learning_rate %f' % self.learning_rate.eval())
 
                     if loss > max(prev_losses):
                         self.session.run(self.learning_rate_decay_op)
                     prev_losses = (prev_losses + [loss])[-5:]
                     loss = 0.0
 
+                    # Save and Summary
                     self.saver.save(self.session, checkpoint_path, global_step=self.global_step)
-                    self.log_writer.add_summary(self.summary, step)
 
                     # Debug
                     query_batch, query_sizes, idx = self.get_batch(queries, data_size, 10)
