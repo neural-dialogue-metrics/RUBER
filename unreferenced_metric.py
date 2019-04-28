@@ -263,14 +263,14 @@ class Unreferenced(object):
         queries = data_helpers.load_file(query_file)
         replies = data_helpers.load_file(reply_file)
 
-        qvocab = data_helpers.load_vocab(query_vocab_file)
-        rvocab = data_helpers.load_vocab(reply_vocab_file)
+        query_vocab = data_helpers.load_vocab(query_vocab_file)
+        reply_vocab = data_helpers.load_vocab(reply_vocab_file)
 
         scores = []
         with self.session.as_default():
             for query, reply in zip(queries, replies):
-                ql, qids = data_helpers.transform_to_id(qvocab, query, self.query_max_length)
-                rl, rids = data_helpers.transform_to_id(rvocab, reply, self.reply_max_length)
+                ql, qids = data_helpers.transform_to_id(query_vocab, query, self.query_max_length)
+                rl, rids = data_helpers.transform_to_id(reply_vocab, reply, self.reply_max_length)
                 feed_dict = self.make_input_feed([qids], [ql], [rids], [rl], training=False)
                 score = self.session.run(self.pos_score, feed_dict)
                 scores.append(score[0])
