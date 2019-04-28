@@ -7,7 +7,7 @@ import data_helpers
 def make_data(args, max_len, raw_input):
     vocab_file, _, _ = data_helpers.process_train_file(
         data_dir=args.data_dir,
-        filename=args.raw_input,
+        raw_input=raw_input,
         max_length=max_len,
         min_frequency=args.min_freq,
     )

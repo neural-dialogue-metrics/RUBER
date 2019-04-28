@@ -17,7 +17,7 @@ def load_file(filename):
     return [line.rstrip() for line in lines]
 
 
-def process_train_file(data_dir, filename, max_length, min_frequency=10):
+def process_train_file(data_dir, raw_input, max_length, min_frequency=10):
     """
     Make vocabulary and transform into id files
 
@@ -26,10 +26,12 @@ def process_train_file(data_dir, filename, max_length, min_frequency=10):
         vocab_dict: map vocab to id
         vocab_size
     """
-    vocab_file = '%s.vocab%d' % (filename, max_length)
-    foutput = os.path.join(data_dir, vocab_file)
-    if os.path.exists(foutput):
-        print('Loading vocab from file %s' % foutput)
+    # basename to form output filename.
+    prefix = os.path.basename(raw_input)
+    vocab_file = os.path.join(data_dir, '%s.vocab%d' % (prefix, max_length))
+
+    if os.path.exists(vocab_file):
+        print('Loading vocab from file %s' % vocab_file)
         vocab = load_vocab(vocab_file)
         return vocab_file, vocab, len(vocab)
 
@@ -39,20 +41,20 @@ def process_train_file(data_dir, filename, max_length, min_frequency=10):
         min_frequency=min_frequency
     )
 
-    x_text = load_file(filename)
+    x_text = load_file(raw_input)
     print('Vocabulary transforming')
     # will pad 0 for length < max_length
     ids = list(vocab_processor.fit_transform(x_text))
     print("Vocabulary size %d" % len(vocab_processor.vocabulary_))
-    fid = os.path.join(data_dir, filename + '.id%d' % max_length)
-    print('Saving %s ids file in %s' % (filename, fid))
-    pickle.dump(ids, open(fid, 'wb'), protocol=2)
+    ids_file = os.path.join(data_dir, prefix + '.id%d' % max_length)
+    print('Saving %s ids file in %s' % (raw_input, ids_file))
+    pickle.dump(ids, open(ids_file, 'wb'), protocol=2)
 
-    print('Saving vocab file in %s' % foutput)
+    print('Saving vocab file in %s' % vocab_file)
     size = len(vocab_processor.vocabulary_)
     vocab_str = [vocab_processor.vocabulary_.reverse(i) for i in range(size)]
-    with open(foutput, 'w') as fout:
-        fout.write('\n'.join(vocab_str))
+    with open(vocab_file, 'w') as out:
+        out.write('\n'.join(vocab_str))
 
     vocab = load_vocab(vocab_file)
     return vocab_file, vocab, len(vocab)
@@ -128,7 +130,7 @@ def load_word2vec(w2v_file):
     """
     print('Loading word2vec dict from %s' % w2v_file)
     vecs = {}
-    with open(w2v_file) as fin:
+    with open(w2v_file, encoding='utf-8') as fin:
         # Header line.
         size, vec_dim = list(map(int, fin.readline().split()))
         for line in fin:
