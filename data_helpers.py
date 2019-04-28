@@ -12,7 +12,7 @@ def tokenizer(iterator):
 
 
 def load_file(filename):
-    print('Loading file %s' % (filename))
+    print('Loading file %s' % filename)
     lines = open(filename).readlines()
     return [line.rstrip() for line in lines]
 

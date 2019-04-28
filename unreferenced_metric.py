@@ -95,8 +95,7 @@ class Unreferenced(object):
                                                    name="reply_inputs")
                 with tf.device('/gpu:1'):
                     reply_embedding = get_birnn_embedding(
-                        self.reply_sizes, self.reply_inputs,
-                        reply_embedding, 'reply_gru_birnn')
+                        self.reply_sizes, self.reply_inputs, reply_embedding, 'reply_gru_birnn')
 
             # quadratic feature as qT*M*r
             with tf.variable_scope('quadratic_feature'):
@@ -106,8 +105,7 @@ class Unreferenced(object):
                                     initializer=tf.zeros_initializer())
                 # [batch_size, matrix_size]
                 qTM = tf.tensordot(query_embedding, M, 1)
-                quadratic = tf.reduce_sum(qTM * reply_embedding,
-                                          axis=1, keep_dims=True)
+                quadratic = tf.reduce_sum(qTM * reply_embedding, axis=1, keep_dims=True)
 
             # multi-layer perceptron
             with tf.variable_scope('multi_layer_perceptron'):
@@ -178,13 +176,16 @@ class Unreferenced(object):
         lens = [data[i][0] for i in idx]
         return ids, lens, idx
 
-    def make_input_feed(self, query_batch, qsizes, reply_batch, rsizes,
-                        neg_batch=None, neg_sizes=None, training=True):
-        if not neg_batch:
+    def make_input_feed(self,
+                        query_batch, qsizes,
+                        reply_batch, rsizes,
+                        neg_batch=None, neg_sizes=None,
+                        training=True):
+        if neg_batch:
             reply_batch += neg_batch
-            reply_sizes += neg_sizes
+            rsizes += neg_sizes
             query_batch += query_batch
-            query_sizes += query_sizes
+            qsizes += qsizes
         return {
             self.query_sizes: qsizes,
             self.query_inputs: query_batch,
@@ -201,7 +202,8 @@ class Unreferenced(object):
                                                                   data_size, batch_size)
         # compute sample loss and do optimize
         feed_dict = self.make_input_feed(query_batch, query_sizes,
-                                         reply_batch, reply_sizes, negative_reply_batch, neg_reply_sizes)
+                                         reply_batch, reply_sizes,
+                                         negative_reply_batch, neg_reply_sizes)
         output_feed = [self.global_step, self.train_op, self.loss]
         step, _, loss = self.session.run(output_feed, feed_dict)
 
@@ -249,7 +251,10 @@ class Unreferenced(object):
                     # Debug
                     query_batch, query_sizes, idx = self.get_batch(queries, data_size, 10)
                     reply_batch, reply_sizes, idx = self.get_batch(replies, data_size, 10, idx)
-                    input_feed = self.make_input_feed(query_batch, query_sizes, reply_batch, reply_sizes,
+
+                    # No neg_batch when validate.
+                    input_feed = self.make_input_feed(query_batch, query_sizes,
+                                                      reply_batch, reply_sizes,
                                                       training=False)
                     score, tests = self.session.run([self.pos_score, self.test], input_feed)
                     print('-------------')
