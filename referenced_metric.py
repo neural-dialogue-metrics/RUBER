@@ -13,14 +13,13 @@ class Referenced(object):
         [max_min | avg | all]
     """
 
-    def __init__(self, data_dir, w2v_file, pooling_type='max_min'):
+    def __init__(self, w2v_file, pooling_type='max_min'):
         """
         Args:
-            data_dir:
             w2v_file: word2vec text file
             pooling_type: [max_min | avg | all], default max_min
         """
-        self.word2vec, self.vec_dim, _ = data_helpers.load_word2vec(data_dir, w2v_file)
+        self.word2vec, self.vec_dim, _ = data_helpers.load_word2vec(w2v_file)
         if pooling_type == 'max_min':
             self.pooling = self.max_min_pooling
         elif pooling_type == 'avg':
@@ -63,9 +62,9 @@ class Referenced(object):
         b = math.sqrt(sum(i ** 2 for i in v1)) * math.sqrt(sum(i ** 2 for i in v2))
         return a / b
 
-    def get_scores(self, data_dir, reference_file, response_file):
-        reference = data_helpers.load_file(data_dir, reference_file)
-        response = data_helpers.load_file(data_dir, response_file)
+    def get_scores(self, reference_file, response_file):
+        reference = data_helpers.load_file(reference_file)
+        response = data_helpers.load_file(response_file)
         ret = []
         for t, g in zip(reference, response):
             ret.append(self._score(t, g))

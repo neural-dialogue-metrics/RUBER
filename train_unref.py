@@ -27,10 +27,5 @@ if __name__ == '__main__':
         mlp_units=MLP_UNITS,
     )
 
-    model.train(
-        data_dir=os.path.dirname(args.query_file),
-        query_file=os.path.basename(args.query_file),
-        reply_file=os.path.basename(args.reply_file),
-        batch_size=args.batch_size,
-        steps_per_checkpoint=args.checkpoint_freq,
-    )
+    model.train(query_file=os.path.basename(args.query_file), reply_file=os.path.basename(args.reply_file),
+                batch_size=args.batch_size, steps_per_checkpoint=args.checkpoint_freq)

@@ -11,8 +11,7 @@ def tokenizer(iterator):
         yield value.split()
 
 
-def load_file(data_dir, fname):
-    fname = os.path.join(data_dir, fname)
+def load_file(fname):
     print('Loading file %s' % (fname))
     lines = open(fname).readlines()
     return [line.rstrip() for line in lines]
@@ -31,12 +30,12 @@ def process_train_file(data_dir, fname, max_length, min_frequency=10):
     foutput = os.path.join(data_dir, fvocab)
     if os.path.exists(foutput):
         print('Loading vocab from file %s' % foutput)
-        vocab = load_vocab(data_dir, fvocab)
+        vocab = load_vocab(fvocab)
         return fvocab, vocab, len(vocab)
 
     vocab_processor = learn.preprocessing.VocabularyProcessor(max_length,
                                                               tokenizer_fn=tokenizer, min_frequency=min_frequency)
-    x_text = load_file(data_dir, fname)
+    x_text = load_file(fname)
     print('Vocabulary transforming')
     # will pad 0 for length < max_length
     ids = list(vocab_processor.fit_transform(x_text))
@@ -51,18 +50,17 @@ def process_train_file(data_dir, fname, max_length, min_frequency=10):
     with open(foutput, 'w') as fout:
         fout.write('\n'.join(vocab_str))
 
-    vocab = load_vocab(data_dir, fvocab)
+    vocab = load_vocab(fvocab)
     return fvocab, vocab, len(vocab)
 
 
-def load_data(data_dir, fname, max_length):
+def load_data(fname):
     """
     Read id file data
 
     Return:
         data list: [[length, [token_ids]]]
     """
-    fname = os.path.join(data_dir, "%s.id%d" % (fname, max_length))
     print('Loading data from %s' % fname)
     ids = pickle.load(open(fname, 'rb'))
     data = []
@@ -74,11 +72,10 @@ def load_data(data_dir, fname, max_length):
     return data
 
 
-def load_vocab(data_dir, fvocab):
+def load_vocab(fvocab):
     """
     Load vocab
     """
-    fvocab = os.path.join(data_dir, fvocab)
     print('Loading vocab from %s' % fvocab)
     vocab = {}
     with open(fvocab) as fin:
@@ -108,7 +105,7 @@ def make_embedding_matrix(data_dir, fname, word2vec, vec_dim, fvocab):
         print('Loading embedding matrix from %s' % foutput)
         return pickle.load(open(foutput, 'rb'))
 
-    vocab_str = load_file(data_dir, fvocab)
+    vocab_str = load_file(fvocab)
     print('Saving embedding matrix in %s' % foutput)
     matrix = []
     for vocab in vocab_str:
@@ -118,7 +115,7 @@ def make_embedding_matrix(data_dir, fname, word2vec, vec_dim, fvocab):
     return matrix
 
 
-def load_word2vec(data_dir, fword2vec):
+def load_word2vec(fword2vec):
     """
     Return:
         word2vec dict
@@ -148,8 +145,8 @@ if __name__ == '__main__':
     fqvocab = '%s.vocab%d' % (fquery, query_max_length)
     frvocab = '%s.vocab%d' % (freply, reply_max_length)
 
-    word2vec, vec_dim, _ = load_word2vec(data_dir, fqword2vec)
+    word2vec, vec_dim, _ = load_word2vec(fqword2vec)
     make_embedding_matrix(data_dir, fquery, word2vec, vec_dim, fqvocab)
 
-    word2vec, vec_dim, _ = load_word2vec(data_dir, frword2vec)
+    word2vec, vec_dim, _ = load_word2vec(frword2vec)
     make_embedding_matrix(data_dir, freply, word2vec, vec_dim, frvocab)

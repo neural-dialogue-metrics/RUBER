@@ -219,9 +219,9 @@ class Unreferenced(object):
             print('Initializing model variables')
             self.session.run(tf.global_variables_initializer())
 
-    def train(self, data_dir, query_file, reply_file, batch_size=128, steps_per_checkpoint=100):
-        queries = data_helpers.load_data(data_dir, query_file, self.query_max_length)
-        replies = data_helpers.load_data(data_dir, reply_file, self.reply_max_length)
+    def train(self, query_file, reply_file, batch_size=128, steps_per_checkpoint=100):
+        queries = data_helpers.load_data(query_file)
+        replies = data_helpers.load_data(reply_file)
         data_size = len(queries)
 
         with self.session.as_default():
@@ -256,15 +256,15 @@ class Unreferenced(object):
                     for s, t in zip(score[:10], tests[:10]):
                         print(s, t)
 
-    def get_scores(self, data_dir, query_file, reply_file, query_vocab_file, reply_vocab_file, init=False):
+    def get_scores(self, query_file, reply_file, query_vocab_file, reply_vocab_file, init=False):
         if not init:
             self.init_model()
 
-        queries = data_helpers.load_file(data_dir, query_file)
-        replies = data_helpers.load_file(data_dir, reply_file)
+        queries = data_helpers.load_file(query_file)
+        replies = data_helpers.load_file(reply_file)
 
-        qvocab = data_helpers.load_vocab(data_dir, query_vocab_file)
-        rvocab = data_helpers.load_vocab(data_dir, reply_vocab_file)
+        qvocab = data_helpers.load_vocab(query_vocab_file)
+        rvocab = data_helpers.load_vocab(reply_vocab_file)
 
         scores = []
         with self.session.as_default():
