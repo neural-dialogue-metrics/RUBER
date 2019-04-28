@@ -13,14 +13,14 @@ class Referenced(object):
         [max_min | avg | all]
     """
 
-    def __init__(self, data_dir, fword2vec, pooling_type='max_min'):
+    def __init__(self, data_dir, w2v_file, pooling_type='max_min'):
         """
         Args:
             data_dir:
-            fword2vec: word2vec text file
+            w2v_file: word2vec text file
             pooling_type: [max_min | avg | all], default max_min
         """
-        self.word2vec, self.vec_dim, _ = data_helpers.load_word2vec(data_dir, fword2vec)
+        self.word2vec, self.vec_dim, _ = data_helpers.load_word2vec(data_dir, w2v_file)
         if pooling_type == 'max_min':
             self.pooling = self.max_min_pooling
         elif pooling_type == 'avg':
@@ -28,17 +28,17 @@ class Referenced(object):
         else:
             self.pooling = self.all_pooling
 
-    def __zeroes_vector(self):
+    def _zeroes_vector(self):
         return [1e-10 for _ in range(self.vec_dim)]
 
-    def __vector(self, word):
-        return self.word2vec[word] if word in self.word2vec else self.__zeroes_vector()
+    def _vector(self, word):
+        return self.word2vec[word] if word in self.word2vec else self._zeroes_vector()
 
     def sentence_vector(self, sentence):
         sentence = sentence.rstrip().split()
-        ret = [self.__vector(word) for word in sentence]
+        ret = [self._vector(word) for word in sentence]
         if len(ret) == 0:
-            return [self.__zeroes_vector()]
+            return [self._zeroes_vector()]
         return ret
 
     def max_min_pooling(self, sentence):
@@ -56,17 +56,17 @@ class Referenced(object):
         return np.concatenate((self.max_min_pooling(sentence),
                                self.average_pooling(sentence)), axis=0)
 
-    def score(self, groundtruth, generated):
+    def _score(self, groundtruth, generated):
         v1 = list(self.pooling(groundtruth))
         v2 = list(self.pooling(generated))
         a = sum(v1[i] * v2[i] for i in range(len(v1)))
         b = math.sqrt(sum(i ** 2 for i in v1)) * math.sqrt(sum(i ** 2 for i in v2))
         return a / b
 
-    def scores(self, data_dir, fgroundtruth, fgenerated):
-        groundtruth = data_helpers.load_file(data_dir, fgroundtruth)
-        generated = data_helpers.load_file(data_dir, fgenerated)
+    def get_scores(self, data_dir, reference_file, response_file):
+        reference = data_helpers.load_file(data_dir, reference_file)
+        response = data_helpers.load_file(data_dir, response_file)
         ret = []
-        for t, g in zip(groundtruth, generated):
-            ret.append(self.score(t, g))
+        for t, g in zip(reference, response):
+            ret.append(self._score(t, g))
         return ret

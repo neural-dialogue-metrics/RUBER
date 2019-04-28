@@ -3,7 +3,6 @@ __author__ = 'liming-vie'
 import os
 import pickle
 import random
-
 import tensorflow as tf
 
 import data_helpers
@@ -16,10 +15,10 @@ class Unreferenced(object):
     """
 
     def __init__(self,
-                 qmax_length,
-                 rmax_length,
-                 fqembed,
-                 frembed,
+                 query_max_len,
+                 reply_max_len,
+                 query_w2v_file,
+                 reply_w2v_file,
                  gru_num_units,
                  mlp_units,
                  init_learning_rate=1e-4,
@@ -40,13 +39,13 @@ class Unreferenced(object):
 
         # initialize variables
         self.train_dir = train_dir
-        self.qmax_length = qmax_length
-        self.rmax_length = rmax_length
+        self.query_max_length = query_max_len
+        self.reply_max_length = reply_max_len
         random.seed()
 
         print('Loading embedding matrix')
-        qembed = pickle.load(open(fqembed, 'rb'))
-        rembed = pickle.load(open(frembed, 'rb'))
+        query_embedding = pickle.load(open(query_w2v_file, 'rb'))
+        reply_embedding = pickle.load(open(reply_w2v_file, 'rb'))
 
         config = tf.ConfigProto(allow_soft_placement=True)
         config.gpu_options.allow_growth = True
@@ -56,8 +55,7 @@ class Unreferenced(object):
         with self.session.as_default():
             # build bidirectional gru rnn and get final state as embedding
             def get_birnn_embedding(sizes, inputs, embed, scope):
-                embedding = tf.Variable(embed, dtype=tf.float32,
-                                        name="embedding_matrix")
+                embedding = tf.Variable(embed, dtype=tf.float32, name="embedding_matrix")
                 with tf.variable_scope('forward'):
                     fw_cell = tf.contrib.rnn.GRUCell(gru_num_units)
                 with tf.variable_scope('backward'):
@@ -81,24 +79,24 @@ class Unreferenced(object):
                                                   shape=[None], name="query_sizes")
                 self.query_inputs = tf.placeholder(tf.int32,
                                                    # [batch_size, sequence_length]
-                                                   shape=[None, self.qmax_length],
+                                                   shape=[None, self.query_max_length],
                                                    name="query_inputs")
                 with tf.device('/gpu:1'):
                     query_embedding = get_birnn_embedding(
                         self.query_sizes, self.query_inputs,
-                        qembed, 'query_rgu_birnn')
+                        query_embedding, 'query_rgu_birnn')
 
             # reply GRU bidirectional RNN
             with tf.variable_scope('reply_bidirectional_rnn'):
                 self.reply_sizes = tf.placeholder(tf.int32,
                                                   shape=[None], name="reply_sizes")
                 self.reply_inputs = tf.placeholder(tf.int32,
-                                                   shape=[None, self.rmax_length],
+                                                   shape=[None, self.reply_max_length],
                                                    name="reply_inputs")
                 with tf.device('/gpu:1'):
                     reply_embedding = get_birnn_embedding(
                         self.reply_sizes, self.reply_inputs,
-                        rembed, 'reply_gru_birnn')
+                        reply_embedding, 'reply_gru_birnn')
 
             # quadratic feature as qT*M*r
             with tf.variable_scope('quadratic_feature'):
@@ -146,11 +144,9 @@ class Unreferenced(object):
                 # optimizer
                 self.learning_rate = tf.Variable(init_learning_rate,
                                                  trainable=False, name="learning_rate")
-                self.learning_rate_decay_op = \
-                    self.learning_rate.assign(self.learning_rate * 0.99)
+                self.learning_rate_decay_op = self.learning_rate.assign(self.learning_rate * 0.99)
                 optimizer = tf.train.AdamOptimizer(self.learning_rate)
-                self.global_step = tf.Variable(0, trainable=False,
-                                               name="global_step")
+                self.global_step = tf.Variable(0, trainable=False, name="global_step")
                 # training op
                 with tf.device('/gpu:1'):
                     self.train_op = optimizer.minimize(self.loss, self.global_step)
@@ -223,9 +219,9 @@ class Unreferenced(object):
             print('Initializing model variables')
             self.session.run(tf.global_variables_initializer())
 
-    def train(self, fquery, freply, batch_size=128, steps_per_checkpoint=100):
-        queries = data_helpers.load_data(fquery)
-        replies = data_helpers.load_data(freply)
+    def train(self, data_dir, query_file, reply_file, batch_size=128, steps_per_checkpoint=100):
+        queries = data_helpers.load_data(data_dir, query_file, self.query_max_length)
+        replies = data_helpers.load_data(data_dir, reply_file, self.reply_max_length)
         data_size = len(queries)
 
         with self.session.as_default():
@@ -260,24 +256,21 @@ class Unreferenced(object):
                     for s, t in zip(score[:10], tests[:10]):
                         print(s, t)
 
-    def scores(self, data_dir, fquery, freply, fqvocab, frvocab, init=False):
+    def get_scores(self, data_dir, query_file, reply_file, query_vocab_file, reply_vocab_file, init=False):
         if not init:
             self.init_model()
 
-        queries = data_helpers.load_file(data_dir, fquery)
-        replies = data_helpers.load_file(data_dir, freply)
-        data_size = len(queries)
+        queries = data_helpers.load_file(data_dir, query_file)
+        replies = data_helpers.load_file(data_dir, reply_file)
 
-        qvocab = data_helpers.load_vocab(data_dir, fqvocab)
-        rvocab = data_helpers.load_vocab(data_dir, frvocab)
+        qvocab = data_helpers.load_vocab(data_dir, query_vocab_file)
+        rvocab = data_helpers.load_vocab(data_dir, reply_vocab_file)
 
         scores = []
         with self.session.as_default():
             for query, reply in zip(queries, replies):
-                ql, qids = data_helpers.transform_to_id(qvocab, query,
-                                                        self.qmax_length)
-                rl, rids = data_helpers.transform_to_id(rvocab, reply,
-                                                        self.rmax_length)
+                ql, qids = data_helpers.transform_to_id(qvocab, query, self.query_max_length)
+                rl, rids = data_helpers.transform_to_id(rvocab, reply, self.reply_max_length)
                 feed_dict = self.make_input_feed([qids], [ql], [rids], [rl], training=False)
                 score = self.session.run(self.pos_score, feed_dict)
                 scores.append(score[0])

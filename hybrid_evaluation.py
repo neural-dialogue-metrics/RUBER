@@ -9,60 +9,43 @@ from unreferenced_metric import Unreferenced
 class Hybrid(object):
     def __init__(self,
                  data_dir,
-                 frword2vec,
-                 fqembed,
-                 frembed,
-                 qmax_length=20,
-                 rmax_length=30,
-                 ref_method='max_min',
+                 word2vec_file,
+                 query_w2v_file,
+                 reply_w2v_file,
+                 train_dir,
+                 query_max_len=20,
+                 reply_max_len=30,
+                 pooling_type='max_min',
                  gru_units=128,
                  mlp_units=None):
         if mlp_units is None:
             mlp_units = [256, 512, 128]
-
-        self.ref = Referenced(data_dir, frword2vec, ref_method)
-        self.unref = Unreferenced(qmax_length, rmax_length,
-                                  os.path.join(data_dir, fqembed),
-                                  os.path.join(data_dir, frembed),
+        self.data_dir=data_dir
+        self.ref = Referenced(data_dir, word2vec_file, pooling_type)
+        self.unref = Unreferenced(query_max_len, reply_max_len,
+                                  os.path.join(data_dir, query_w2v_file),
+                                  os.path.join(data_dir, reply_w2v_file),
                                   gru_units, mlp_units,
                                   train_dir=train_dir)
 
-    def train_unref(self, data_dir, fquery, freply):
-        self.unref.train(data_dir, fquery, freply)
+    def train_unref(self, data_dir, query_file, reply_file):
+        self.unref.train(data_dir, query_file, reply_file)
 
-    def normalize(self, scores):
+    def _normalize(self, scores):
         smin = min(scores)
         smax = max(scores)
         diff = smax - smin
         ret = [(s - smin) / diff for s in scores]
         return ret
 
-    def scores(self, data_dir, fquery, freply, fgenerated, fqvocab, frvocab):
-        ref_scores = self.ref.scores(data_dir, freply, fgenerated)
-        ref_scores = self.normalize(ref_scores)
+    def get_scores(self, query_file, reply_file, generated_file, query_vocab_file, reply_vocab_file):
+        ref_scores = self.ref.get_scores(self.data_dir, reply_file, generated_file)
+        ref_scores = self._normalize(ref_scores)
 
-        unref_scores = self.unref.scores(data_dir, fquery, fgenerated, fqvocab, frvocab)
-        unref_scores = self.normalize(unref_scores)
+        unref_scores = self.unref.get_scores(self.data_dir,
+                                             query_file, generated_file, query_vocab_file, reply_vocab_file)
+        unref_scores = self._normalize(unref_scores)
 
         return [min(a, b) for a, b in zip(ref_scores, unref_scores)]
 
 
-if __name__ == '__main__':
-    train_dir = ''
-    data_dir = 'data/'
-    qmax_length, rmax_length = [20, 30]
-    fquery, freply = []
-    frword2vec = ''
-
-    hybrid = Hybrid(data_dir, frword2vec, '%s.embed' % fquery, '%s.embed' % freply)
-    """test"""
-    out_file = 'word2vec_out'
-    #    scores = hybrid.unref.scores(data_dir, '%s.sub'%fquery, '%s.sub'%freply, "%s.vocab%d"%(fquery,qmax_length), "%s.vocab%d"%(freply, rmax_length))
-    scores = hybrid.scores(data_dir, '%s.sub' % fquery, '%s.true.sub' % freply, out_file,
-                           '%s.vocab%d' % (fquery, qmax_length), '%s.vocab%d' % (freply, rmax_length))
-    for i, s in enumerate(scores):
-        print(i, s)
-    print('avg:%f' % (sum(scores) / len(scores)))
-
-    """train"""
-#    hybrid.train_unref(data_dir, fquery, freply)
