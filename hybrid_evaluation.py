@@ -6,7 +6,7 @@ from referenced_metric import Referenced
 from unreferenced_metric import Unreferenced
 
 
-class Hybrid():
+class Hybrid(object):
     def __init__(self,
                  data_dir,
                  frword2vec,
@@ -15,8 +15,10 @@ class Hybrid():
                  qmax_length=20,
                  rmax_length=30,
                  ref_method='max_min',
-                 gru_units=128, mlp_units=[256, 512, 128]
-                 ):
+                 gru_units=128, mlp_units=None):
+        if mlp_units is None:
+            mlp_units = [256, 512, 128]
+
         self.ref = Referenced(data_dir, frword2vec, ref_method)
         self.unref = Unreferenced(qmax_length, rmax_length,
                                   os.path.join(data_dir, fqembed),
@@ -38,9 +40,8 @@ class Hybrid():
         ref_scores = self.ref.scores(data_dir, freply, fgenerated)
         ref_scores = self.normalize(ref_scores)
 
-        unref_scores = self.unref.scores(data_dir, fquery, fgenerated,
-                                         fqvocab, frvocab)
-        unref_socres = self.normalize(unref_scores)
+        unref_scores = self.unref.scores(data_dir, fquery, fgenerated, fqvocab, frvocab)
+        unref_scores = self.normalize(unref_scores)
 
         return [min(a, b) for a, b in zip(ref_scores, unref_scores)]
 

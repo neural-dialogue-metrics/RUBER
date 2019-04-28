@@ -112,8 +112,7 @@ def make_embedding_matrix(data_dir, fname, word2vec, vec_dim, fvocab):
     print('Saving embedding matrix in %s' % foutput)
     matrix = []
     for vocab in vocab_str:
-        vec = word2vec[vocab] if vocab in word2vec \
-            else [0.0 for _ in range(vec_dim)]
+        vec = word2vec[vocab] if vocab in word2vec else [0.0 for _ in range(vec_dim)]
         matrix.append(vec)
     pickle.dump(matrix, open(foutput, 'wb'), protocol=2)
     return matrix
@@ -129,7 +128,6 @@ def load_word2vec(data_dir, fword2vec):
     fword2vec = os.path.join(data_dir, fword2vec)
     print('Loading word2vec dict from %s' % fword2vec)
     vecs = {}
-    vec_dim = 0
     with open(fword2vec) as fin:
         size, vec_dim = list(map(int, fin.readline().split()))
         for line in fin:
@@ -155,4 +153,3 @@ if __name__ == '__main__':
 
     word2vec, vec_dim, _ = load_word2vec(data_dir, frword2vec)
     make_embedding_matrix(data_dir, freply, word2vec, vec_dim, frvocab)
-    pass

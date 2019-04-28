@@ -9,7 +9,7 @@ import tensorflow as tf
 import data_helpers
 
 
-class Unreferenced():
+class Unreferenced(object):
     """Unreferenced Metric
     Measure the relatedness between the generated reply and its query using
     neural network
@@ -25,8 +25,7 @@ class Unreferenced():
                  init_learning_rate=1e-4,
                  l2_regular=0.1,
                  margin=0.5,
-                 train_dir='train_data/'
-                 ):
+                 train_dir='train_data/'):
         """
         Initialize related variables and construct the neural network graph.
 
@@ -126,8 +125,7 @@ class Unreferenced():
                         inputs = tf.contrib.layers.legacy_fully_connected(
                             inputs, mlp_units[i],
                             activation_fn=tf.tanh,
-                            weight_regularizer=tf.contrib.layers. \
-                                l2_regularizer(l2_regular))
+                            weight_regularizer=tf.contrib.layers.l2_regularizer(l2_regular))
                 self.test = inputs
                 # dropout layer
                 self.training = tf.placeholder(tf.bool, name='training')
@@ -192,11 +190,13 @@ class Unreferenced():
             reply_sizes += neg_sizes
             query_batch += query_batch
             query_sizes += query_sizes
-        return {self.query_sizes: qsizes,
-                self.query_inputs: query_batch,
-                self.reply_sizes: rsizes,
-                self.reply_inputs: reply_batch,
-                self.training: training}
+        return {
+            self.query_sizes: qsizes,
+            self.query_inputs: query_batch,
+            self.reply_sizes: rsizes,
+            self.reply_inputs: reply_batch,
+            self.training: training
+        }
 
     def train_step(self, queries, replies, data_size, batch_size):
         query_batch, query_sizes, idx = self.get_batch(queries, data_size, batch_size)
@@ -224,8 +224,7 @@ class Unreferenced():
             print('Initializing model variables')
             self.session.run(tf.global_variables_initializer())
 
-    def train(self, data_dir, fquery, freply,
-              batch_size=128, steps_per_checkpoint=100):
+    def train(self, data_dir, fquery, freply, batch_size=128, steps_per_checkpoint=100):
         queries = data_helpers.load_data(data_dir, fquery, self.qmax_length)
         replies = data_helpers.load_data(data_dir, freply, self.rmax_length)
         data_size = len(queries)
@@ -242,19 +241,17 @@ class Unreferenced():
                 # save checkpoint
                 if step % steps_per_checkpoint == 0:
                     loss /= steps_per_checkpoint
-                    print(("global_step %d, loss %f, learning rate %f" \
-                           % (step, loss, self.learning_rate.eval())))
+                    print(("global_step %d, loss %f, learning rate %f" % (step, loss, self.learning_rate.eval())))
 
                     if loss > max(prev_losses):
                         self.session.run(self.learning_rate_decay_op)
                     prev_losses = (prev_losses + [loss])[-5:]
                     loss = 0.0
 
-                    self.saver.save(self.session, checkpoint_path,
-                                    global_step=self.global_step)
+                    self.saver.save(self.session, checkpoint_path, global_step=self.global_step)
                     self.log_writer.add_summary(self.summary, step)
 
-                    #                    """ Debug
+                    # Debug
                     query_batch, query_sizes, idx = self.get_batch(queries, data_size, 10)
                     reply_batch, reply_sizes, idx = self.get_batch(replies, data_size, 10, idx)
                     input_feed = self.make_input_feed(query_batch, query_sizes, reply_batch, reply_sizes,
@@ -263,8 +260,6 @@ class Unreferenced():
                     print('-------------')
                     for s, t in zip(score[:10], tests[:10]):
                         print(s, t)
-
-    #                   """
 
     def scores(self, data_dir, fquery, freply, fqvocab, frvocab, init=False):
         if not init:
@@ -287,8 +282,4 @@ class Unreferenced():
                 feed_dict = self.make_input_feed([qids], [ql], [rids], [rl], training=False)
                 score = self.session.run(self.pos_score, feed_dict)
                 scores.append(score[0])
-            """ Debug
-            for i, s in enumerate(scores):
-                print i,s
-            """
         return scores

@@ -1,13 +1,11 @@
 __author__ = 'liming-vie'
 
 import math
-
 import numpy as np
-
 import data_helpers
 
 
-class Referenced():
+class Referenced(object):
     """Referenced Metric
     Measure the similarity between the groundtruth reply and generated reply
     use cosine score.
@@ -22,8 +20,7 @@ class Referenced():
             fword2vec: word2vec text file
             pooling_type: [max_min | avg | all], default max_min
         """
-        self.word2vec, self.vec_dim, _ = data_helpers.load_word2vec(
-            data_dir, fword2vec)
+        self.word2vec, self.vec_dim, _ = data_helpers.load_word2vec(data_dir, fword2vec)
         if pooling_type == 'max_min':
             self.pooling = self.max_min_pooling
         elif pooling_type == 'avg':
@@ -35,8 +32,7 @@ class Referenced():
         return [1e-10 for _ in range(self.vec_dim)]
 
     def __vector(self, word):
-        return self.word2vec[word] if word in self.word2vec \
-            else self.__zeroes_vector()
+        return self.word2vec[word] if word in self.word2vec else self.__zeroes_vector()
 
     def sentence_vector(self, sentence):
         sentence = sentence.rstrip().split()
