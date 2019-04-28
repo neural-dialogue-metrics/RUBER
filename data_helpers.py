@@ -104,18 +104,18 @@ def transform_to_id(vocab, sentence, max_length):
 
 
 def make_embedding_matrix(data_dir, prefix, word2vec, vec_dim, vocab_file):
-    foutput = os.path.join(data_dir, "%s.embed" % prefix)
-    if os.path.exists(foutput):
-        print('Loading embedding matrix from %s' % foutput)
-        return pickle.load(open(foutput, 'rb'))
+    output = os.path.join(data_dir, "%s.embed" % prefix)
+    if os.path.exists(output):
+        print('Loading embedding matrix from %s' % output)
+        return pickle.load(open(output, 'rb'))
 
     vocab_str = load_file(vocab_file)
-    print('Saving embedding matrix in %s' % foutput)
+    print('Saving embedding matrix in %s' % output)
     matrix = []
     for vocab in vocab_str:
         vec = word2vec[vocab] if vocab in word2vec else [0.0 for _ in range(vec_dim)]
         matrix.append(vec)
-    pickle.dump(matrix, open(foutput, 'wb'), protocol=2)
+    pickle.dump(matrix, open(output, 'wb'), protocol=2)
     return matrix
 
 
@@ -129,6 +129,7 @@ def load_word2vec(w2v_file):
     print('Loading word2vec dict from %s' % w2v_file)
     vecs = {}
     with open(w2v_file) as fin:
+        # Header line.
         size, vec_dim = list(map(int, fin.readline().split()))
         for line in fin:
             ps = line.rstrip().split()
