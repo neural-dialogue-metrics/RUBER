@@ -15,7 +15,8 @@ class Hybrid(object):
                  qmax_length=20,
                  rmax_length=30,
                  ref_method='max_min',
-                 gru_units=128, mlp_units=None):
+                 gru_units=128,
+                 mlp_units=None):
         if mlp_units is None:
             mlp_units = [256, 512, 128]
 

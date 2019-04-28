@@ -38,7 +38,7 @@ class Unreferenced(object):
                 No need to specify the output layer size 1.
         """
 
-        # initialize varialbes
+        # initialize variables
         self.train_dir = train_dir
         self.qmax_length = qmax_length
         self.rmax_length = rmax_length
@@ -52,8 +52,7 @@ class Unreferenced(object):
         config.gpu_options.allow_growth = True
         self.session = tf.Session(config=config)
 
-        """graph"""
-
+        # graph
         with self.session.as_default():
             # build bidirectional gru rnn and get final state as embedding
             def get_birnn_embedding(sizes, inputs, embed, scope):
@@ -224,9 +223,9 @@ class Unreferenced(object):
             print('Initializing model variables')
             self.session.run(tf.global_variables_initializer())
 
-    def train(self, data_dir, fquery, freply, batch_size=128, steps_per_checkpoint=100):
-        queries = data_helpers.load_data(data_dir, fquery, self.qmax_length)
-        replies = data_helpers.load_data(data_dir, freply, self.rmax_length)
+    def train(self, fquery, freply, batch_size=128, steps_per_checkpoint=100):
+        queries = data_helpers.load_data(fquery)
+        replies = data_helpers.load_data(freply)
         data_size = len(queries)
 
         with self.session.as_default():

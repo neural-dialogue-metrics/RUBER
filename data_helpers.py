@@ -55,14 +55,13 @@ def process_train_file(data_dir, fname, max_length, min_frequency=10):
     return fvocab, vocab, len(vocab)
 
 
-def load_data(data_dir, fname, max_length):
+def load_data(fname):
     """
     Read id file data
 
     Return:
         data list: [[length, [token_ids]]]
     """
-    fname = os.path.join(data_dir, "%s.id%d" % (fname, max_length))
     print('Loading data from %s' % fname)
     ids = pickle.load(open(fname, 'rb'))
     data = []
