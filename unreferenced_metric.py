@@ -3,9 +3,12 @@ __author__ = 'liming-vie'
 import os
 import pickle
 import random
+import logging
 import tensorflow as tf
 
 import data_helpers
+
+logger = logging.getLogger(__name__)
 
 
 class Unreferenced(object):
@@ -186,6 +189,7 @@ class Unreferenced(object):
         if neg_batch:
             reply_batch += neg_batch
             rsizes += neg_sizes
+            # query is all the same.
             query_batch += query_batch
             qsizes += qsizes
         return {
@@ -198,10 +202,9 @@ class Unreferenced(object):
 
     def train_step(self, queries, replies, data_size, batch_size):
         query_batch, query_sizes, idx = self.get_batch(queries, data_size, batch_size)
-        reply_batch, reply_sizes, _ = self.get_batch(replies, data_size,
-                                                     batch_size, idx)
-        negative_reply_batch, neg_reply_sizes, _ = self.get_batch(replies,
-                                                                  data_size, batch_size)
+        reply_batch, reply_sizes, _ = self.get_batch(replies, data_size, batch_size, idx)
+        negative_reply_batch, neg_reply_sizes, _ = self.get_batch(replies, data_size, batch_size)
+
         # compute sample loss and do optimize
         feed_dict = self.make_input_feed(query_batch, query_sizes,
                                          reply_batch, reply_sizes,
@@ -213,7 +216,7 @@ class Unreferenced(object):
 
     def init_model(self):
         """
-        Initilize all variables or load model from checkpoint
+        Initialize all variables or load model from checkpoint
         """
         ckpt = tf.train.get_checkpoint_state(self.train_dir)
         if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
@@ -280,9 +283,11 @@ class Unreferenced(object):
         scores = []
         with self.session.as_default():
             for query, reply in zip(queries, replies):
-                ql, qids = data_helpers.transform_to_id(query_vocab, query, self.query_max_length)
-                rl, rids = data_helpers.transform_to_id(reply_vocab, reply, self.reply_max_length)
-                feed_dict = self.make_input_feed([qids], [ql], [rids], [rl], training=False)
-                score = self.session.run(self.pos_score, feed_dict)
-                scores.append(score[0])
+                q_len, q_ids = data_helpers.transform_to_id(query_vocab, query, self.query_max_length)
+                r_len, r_ids = data_helpers.transform_to_id(reply_vocab, reply, self.reply_max_length)
+                feed_dict = self.make_input_feed([q_ids], [q_len], [r_ids], [r_len], training=False)
+                # When training=False there is no neg_score, so as pos_score.
+                score = self.session.run(self.score, feed_dict)
+                score = float(score[0])
+                scores.append(score)
         return scores
