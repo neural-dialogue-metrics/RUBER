@@ -1,9 +1,10 @@
 __author__ = 'liming-vie'
 
-import os
-
+import logging
 from referenced_metric import Referenced
 from unreferenced_metric import Unreferenced
+
+logger = logging.getLogger(__name__)
 
 
 class Hybrid(object):
@@ -19,7 +20,10 @@ class Hybrid(object):
                  mlp_units=None):
         if mlp_units is None:
             mlp_units = [256, 512, 128]
+        logger.info('creating ref model')
         self.ref = Referenced(word2vec_file, pooling_type)
+
+        logger.info('creating unref model')
         self.unref = Unreferenced(query_max_len, reply_max_len,
                                   query_w2v_file,
                                   reply_w2v_file,
@@ -27,6 +31,7 @@ class Hybrid(object):
                                   train_dir=train_dir)
 
     def train_unref(self, query_file, reply_file):
+        logger.info('training unref model')
         self.unref.train(query_file, reply_file)
 
     def _normalize(self, scores):
@@ -37,10 +42,13 @@ class Hybrid(object):
         return ret
 
     def get_scores(self, query_file, reply_file, generated_file, query_vocab_file, reply_vocab_file):
+        logger.info('computing ref_scores')
         ref_scores = self.ref.get_scores(reply_file, generated_file)
         ref_scores = self._normalize(ref_scores)
 
+        logger.info('computing unref_scores')
         unref_scores = self.unref.get_scores(query_file, generated_file, query_vocab_file, reply_vocab_file)
         unref_scores = self._normalize(unref_scores)
 
+        # min() combiner.
         return [min(a, b) for a, b in zip(ref_scores, unref_scores)]

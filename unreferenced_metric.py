@@ -281,6 +281,7 @@ class Unreferenced(object):
         reply_vocab = data_helpers.load_vocab(reply_vocab_file)
 
         scores = []
+        logger.info('looping over query-reply pairs')
         with self.session.as_default():
             for query, reply in zip(queries, replies):
                 q_len, q_ids = data_helpers.transform_to_id(query_vocab, query, self.query_max_length)

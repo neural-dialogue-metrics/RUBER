@@ -1,5 +1,6 @@
 import argparse
 import os
+import logging
 
 from hybrid_evaluation import Hybrid
 from agenda.metric_helper import write_score
@@ -23,7 +24,10 @@ if __name__ == '__main__':
     parser.add_argument('-reply_vocab_file', required=True)
     parser.add_argument('-generated_file', required=True)
     parser.add_argument('-score_file', required=True, help='scores stored here')
+    parser.add_argument('-v', '--verbose')
     args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
     model = Hybrid(
         word2vec_file=args.w2v_file,
