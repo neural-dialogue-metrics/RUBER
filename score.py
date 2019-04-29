@@ -1,6 +1,8 @@
 import argparse
-import numpy as np
+import os
+
 from hybrid_evaluation import Hybrid
+from agenda.metric_helper import write_score
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -20,6 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('-query_vocab_file', required=True)
     parser.add_argument('-reply_vocab_file', required=True)
     parser.add_argument('-generated_file', required=True)
+    parser.add_argument('-score_file', required=True, help='scores stored here')
     args = parser.parse_args()
 
     model = Hybrid(
@@ -40,4 +43,12 @@ if __name__ == '__main__':
         reply_vocab_file=args.reply_vocab_file,
     )
 
-    print(np.mean(scores))
+    write_score(
+        name='RUBER',
+        scores=scores,
+        output=args.score_file,
+        params={
+            'pooling_type': args.pooling_type,
+            'embedding': os.path.basename(args.w2v_file),
+        }
+    )
