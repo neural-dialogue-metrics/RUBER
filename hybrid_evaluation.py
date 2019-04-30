@@ -41,14 +41,20 @@ class Hybrid(object):
         ret = [(s - smin) / diff for s in scores]
         return ret
 
-    def get_scores(self, query_file, reply_file, generated_file, query_vocab_file, reply_vocab_file):
+    def get_ref_scores(self, reply_file, generated_file):
         logger.info('computing ref_scores')
         ref_scores = self.ref.get_scores(reply_file, generated_file)
         ref_scores = self._normalize(ref_scores)
+        return ref_scores
 
+    def get_unref_scores(self, generated_file, query_file, query_vocab_file, reply_vocab_file):
         logger.info('computing unref_scores')
         unref_scores = self.unref.get_scores(query_file, generated_file, query_vocab_file, reply_vocab_file)
         unref_scores = self._normalize(unref_scores)
+        return unref_scores
 
+    def get_scores(self, query_file, reply_file, generated_file, query_vocab_file, reply_vocab_file):
+        ref_scores = self.get_ref_scores(reply_file, generated_file)
+        unref_scores = self.get_unref_scores(generated_file, query_file, query_vocab_file, reply_vocab_file)
         # min() combiner.
         return [min(a, b) for a, b in zip(ref_scores, unref_scores)]
